@@ -1,0 +1,5 @@
+{
+  "name": "Brand Compliance Auditor",
+  "description": "An enterprise-grade tool to scan web content against pre-defined messaging and style guidelines using Gemini AI to identify brand deltas.",
+  "requestFramePermissions": []
+}
