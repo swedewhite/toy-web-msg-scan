@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { BrandGuideline, AuditResult } from "../types";
+import { BrandGuideline, AuditResult, GroundingSource } from "../types.ts";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
@@ -9,14 +9,12 @@ export async function auditContent(
   guidelines: BrandGuideline, 
   url?: string
 ): Promise<AuditResult> {
-  // If a URL is provided, we use the googleSearch tool to let Gemini "read" the live site.
-  // If content is provided manually, we audit that string directly.
   const isUrlScan = !!url && !content;
 
   const prompt = `
-    Perform a strict Brand Compliance Audit.
+    Perform an UNBIASED Brand Compliance Audit. 
     
-    GROUND TRUTH (The Baseline Messaging Document):
+    GROUND TRUTH (The Absolute Baseline Document):
     """
     ${guidelines.baselineDocument}
     """
@@ -27,34 +25,23 @@ export async function auditContent(
     - Prohibited Terms: ${guidelines.prohibitedTerms.join(", ")}
     - Mandatory Phrases: ${guidelines.mandatoryPhrases.join(", ")}
 
-    ${isUrlScan 
-      ? `TARGET: Please visit and analyze the live content at the URL: ${url}`
-      : `TARGET WEB CONTENT:
-    """
-    ${content}
-    """`
-    }
-
-    TASK:
-    1. ${isUrlScan ? 'Access the live content of the URL provided.' : 'Analyze the provided text.'}
-    2. Compare it to the GROUND TRUTH document. Any deviation in facts, tone, or terminology is a VIOLATION.
-    3. Calculate "Semantic Drift" (0-100%) and "Alignment Score" (0-100%).
-    4. For EVERY violation:
-       - originalText: The EXACT text snippet as it appears in the target source.
-       - contextSnippet: The surrounding paragraph.
-       - baselineReference: The specific truth from the baseline it violates.
-       - suggestedCorrection: How to fix it.
-       - reason: Why it is a violation.
-    5. VERY IMPORTANT: Return the "auditedText" property containing the FULL text you retrieved/analyzed so the UI can render it for the user.
-
-    Return as JSON.
+    TARGET: ${isUrlScan ? `Examine the live contents of ${url}. Only audit what is currently on the page.` : 'Examine the provided text snippet.'}
+    
+    INSTRUCTIONS:
+    1. Compare the target content to the GROUND TRUTH.
+    2. A VIOLATION occurs if the target content:
+       - Contradicts a fact in the Baseline Document.
+       - Uses a prohibited term.
+       - Omits a mandatory phrase in a relevant context.
+       - Drifts significantly in tone (e.g., becomes "corporate jargon" instead of "approachable").
+    3. DO NOT report hallucinations. If the web content is aligned, report 100% score and 0 issues.
+    4. Provide the FULL text you retrieved from the target in the "auditedText" field.
   `;
 
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: prompt,
     config: {
-      // Use search grounding for live URL lookups
       tools: isUrlScan ? [{ googleSearch: {} }] : [],
       responseMimeType: "application/json",
       responseSchema: {
@@ -63,7 +50,7 @@ export async function auditContent(
           score: { type: Type.NUMBER },
           semanticDrift: { type: Type.NUMBER },
           summary: { type: Type.STRING },
-          auditedText: { type: Type.STRING, description: "The full text retrieved from the URL or provided for auditing." },
+          auditedText: { type: Type.STRING },
           issues: {
             type: Type.ARRAY,
             items: {
@@ -88,12 +75,25 @@ export async function auditContent(
   });
 
   const result = JSON.parse(response.text || '{}');
+  
+  // Extract grounding sources if they exist
+  const sources: GroundingSource[] = [];
+  const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+  if (groundingChunks) {
+    groundingChunks.forEach((chunk: any) => {
+      if (chunk.web) {
+        sources.push({ title: chunk.web.title, uri: chunk.web.uri });
+      }
+    });
+  }
+
   return { 
     score: result.score ?? 0,
     semanticDrift: result.semanticDrift ?? 0,
     summary: result.summary ?? "Audit completed.",
     issues: result.issues ?? [],
     url: url || 'Manual Input',
-    scannedContent: result.auditedText || content
+    scannedContent: result.auditedText || content,
+    sources: sources.length > 0 ? sources : undefined
   };
 }
