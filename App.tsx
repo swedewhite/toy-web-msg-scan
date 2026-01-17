@@ -104,7 +104,7 @@ const App: React.FC = () => {
                 rows={8}
                 value={guidelines.baselineDocument}
                 onChange={(e) => setGuidelines({...guidelines, baselineDocument: e.target.value})}
-                placeholder="Paste text here..."
+                placeholder="Paste ground truth copy here..."
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-medium text-gray-900 focus:bg-white transition-colors"
               />
             </section>
