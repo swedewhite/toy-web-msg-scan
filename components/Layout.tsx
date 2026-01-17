@@ -19,11 +19,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
               <span className="text-xl font-bold text-gray-900 tracking-tight">Compliance<span className="text-green-600">Scan</span></span>
             </div>
-            <nav className="flex space-x-8">
-              <span className="text-sm font-medium text-gray-500 hover:text-gray-700 cursor-pointer">Dashboard</span>
-              <span className="text-sm font-medium text-gray-500 hover:text-gray-700 cursor-pointer">Archive</span>
-              <span className="text-sm font-medium text-gray-500 hover:text-gray-700 cursor-pointer">Team</span>
-            </nav>
           </div>
         </div>
       </header>

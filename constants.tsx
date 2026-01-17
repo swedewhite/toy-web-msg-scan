@@ -1,7 +1,7 @@
 
 import { BrandGuideline } from './types';
 
-export const DEFAULT_BASELINE_DOC = `MongoDB is the developer data platform that provides the services and tools necessary to build distributed applications at the speed and scale users demand. MongoDB’s document model is the most natural way to work with data, and its distributed architecture allows you to place data where you need it. Our mission is to empower innovators to create, maintain, and transform the world's applications. We focus on flexibility, scalability, and developer productivity above all else. We are the unified platform for modern applications.`;
+export const DEFAULT_BASELINE_DOC = "";
 
 export const DEFAULT_GUIDELINES: BrandGuideline = {
   voice: "Developer-centric, authoritative yet approachable, and forward-thinking.",
